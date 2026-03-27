@@ -1,0 +1,445 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "5721aeea-51f3-43d6-8b42-014282a347dd",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -608,
+        -416
+      ],
+      "id": "cdc2adcd-b2c5-465e-96c0-6c2f2653f175",
+      "name": "Webhook",
+      "webhookId": "5721aeea-51f3-43d6-8b42-014282a347dd"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.1-8b-instant"
+            },
+            {
+              "name": "temperature",
+              "value": "={{0}}"
+            },
+            {
+              "name": "max_tokens",
+              "value": "={{20}}"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": \"You classify support tickets as CRITICAL, HIGH, or LOW. Respond only in JSON like {\\\"urgency\\\":\\\"CRITICAL\\\"}.\"\n  },\n  {\n    \"role\": \"user\",\n    \"content\": \"Ticket: \" + $json[\"body\"][\"message\"]\n  }\n] }}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -496,
+        -224
+      ],
+      "id": "1133bfc3-d92c-453f-b0d1-abeab747ad98",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ticket_id\": \"{{ $json.body.ticket_id }}\",\n  \"message\": \"{{ $json.body.message }}\",\n  \"urgency\": \"{{ $json.urgency }}\",\n  \"action\": \"{{ $json.urgency === 'HIGH' ? 'ALERT_REQUIRED' : 'NO_ALERT_NEEDED' }}\",\n  \"routing\": \"{{ $json.urgency === 'HIGH' ? 'SEND_TO_ENGINEERING' : 'LOGGED_FOR_REVIEW' }}\",\n  \"timestamp\": \"{{ $now }}\",\n  \"ai_model\": \"groq-llama3-8b\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        736,
+        -288
+      ],
+      "id": "7e7b3375-2f6c-4dc6-b0d8-76e15deb2f60",
+      "name": "Respond to HIGH"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ticket_id\": \"{{ $json.body.ticket_id }}\",\n  \"message\": \"{{ $json.body.message }}\",\n  \"urgency\": \"{{ $json.urgency }}\",\n  \"action\": \"{{ $json.urgency === 'LOW' ? 'ALERT_REQUIRED' : 'NO_ALERT_NEEDED' }}\",\n  \"routing\": \"{{ $json.urgency === 'LOW' ? 'SEND_TO_ENGINEERING' : 'LOGGED_FOR_REVIEW' }}\",\n  \"timestamp\": \"{{ $now }}\",\n  \"ai_model\": \"groq-llama3-8b\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        752,
+        -96
+      ],
+      "id": "cb993855-32c5-48c6-9707-4e0c571d4801",
+      "name": "Respond to LOW"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ticket_id\": \"{{ $json.ticket_id }}\",\n  \"message\": \"{{ $json.message }}\",\n  \"urgency\": \"{{ $json.urgency }}\",\n  \"action\": \"{{ $json.action }}\",\n  \"routing\": \"{{ $json.routing }}\",\n  \"timestamp\": \"{{ $now }}\",\n  \"ai_model\": \"groq-llama3-8b\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        208,
+        -112
+      ],
+      "id": "ed7b5282-879c-4d01-b89c-4871ede15b67",
+      "name": "Respond to CRITICAL"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.urgency }}",
+                    "rightValue": "CRITICAL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "c1640ca9-3881-425a-bff7-a3d3c91fab78"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e74c6875-6405-4446-9cd7-acb1261178b5",
+                    "leftValue": "={{ $json.urgency }}",
+                    "rightValue": "HIGH",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "fcd61da3-13b0-4587-856a-eca12374ffe6",
+                    "leftValue": "={{ $json.urgency }}",
+                    "rightValue": "LOW",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "allMatchingOutputs": false
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -128,
+        -128
+      ],
+      "id": "6b6ce3de-4969-4156-9229-3e5ef1c383a2",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const aiContent = $json.choices[0].message.content;\nconst urgency = JSON.parse(aiContent).urgency.trim().toUpperCase();\n\n// Generate ticket ID\nconst ticketId = \"TICKET-\" + Date.now();\n\nlet action;\nlet routing;\n\nif (urgency === \"CRITICAL\") {\n  action = \"ESCALATE_IMMEDIATELY\";\n  routing = \"ENGINEERING\";\n} \nelse if (urgency === \"HIGH\") {\n  action = \"PRIORITY_INVESTIGATION\";\n  routing = \"SUPPORT\";\n} \nelse {\n  action = \"ADD_TO_QUEUE\";\n  routing = \"GENERAL_SUPPORT\";\n}\n\nreturn {\n  ticket_id: ticketId,\n  message: $json.body?.message ?? $json.message ?? \"\",\n  urgency: urgency,\n  action: action,\n  routing: routing,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        -224
+      ],
+      "id": "ba9376ca-5b35-46b0-be4f-4ec4e7973f93",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -208,
+        -400
+      ],
+      "id": "2ce9f6a9-7273-4238-b360-fd6bc3040691",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "15Z0pkHxjjtsPdPYy91LN9SQc8bQRiP4qHfi_Iipn33E",
+          "mode": "list",
+          "cachedResultName": "Ticket",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15Z0pkHxjjtsPdPYy91LN9SQc8bQRiP4qHfi_Iipn33E/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Tickets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15Z0pkHxjjtsPdPYy91LN9SQc8bQRiP4qHfi_Iipn33E/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ticket_id": "={{$json.ticket_id}}",
+            "message": "={{$json.body.message}}",
+            "urgency": "={{$json.urgency}}",
+            "action": "={{$json.action}}",
+            "routing": "={{$json.routing}}",
+            "timestamp": "={{$json.timestamp}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ticket_id",
+              "displayName": "ticket_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "urgency",
+              "displayName": "urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "routing",
+              "displayName": "routing",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        32,
+        -112
+      ],
+      "id": "5bc34f5c-9094-460f-8077-badce8ead95e",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GY5a17GRwVRYidrZ",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Respond to CRITICAL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "5d5fdfae-31dc-4300-acf8-80321af51aed",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "43840f069821c539f656a761a986d8503d6bc6008f913a56916988f19725ae95"
+  },
+  "id": "e3UoVa2pPWsFEWAo",
+  "tags": []
+}
