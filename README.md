@@ -12,9 +12,4 @@ Webhook → HTTP Request → Code → Merge → Switch → Google Sheets → Web
 - Logs tickets to Google Sheets
 - Fully automated using n8n
 
-## Setup Instructions
 
-1. **Clone the repo**
-```bash
-git clone https://github.com/YOUR_USERNAME/n8n-ai-ticket-workflow.git
-cd n8n-ai-ticket-workflow
